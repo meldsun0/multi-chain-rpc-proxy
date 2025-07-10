@@ -1289,6 +1289,7 @@ dependencies = [
  "actix-web",
  "dashmap",
  "getset",
+ "log",
  "reqwest",
  "serde_json",
  "tokio",

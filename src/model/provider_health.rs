@@ -2,9 +2,9 @@ use getset::{Getters};
 use std::time::SystemTime;
 #[derive(Debug, Clone, Getters)]
 pub struct Health {
-    #[get_copy = "pub"]
+    #[get = "pub"]
     latency: u64,
-    #[get_copy = "pub"]
+    #[get = "pub"]
     last_block: u64,
     #[get = "pub"]
     last_updated: SystemTime,

@@ -9,6 +9,7 @@ pub struct Blockchain {
     id: String,
     #[get = "pub"]
     name: String,
+    #[get = "pub"]
     providers: Vec<Provider>,
     health_map: Arc<DashMap<String, Health>>,
 
@@ -28,9 +29,9 @@ impl Blockchain {
         self.providers.push(provider);
     }
 
-    pub fn update_provider_health(&self, provider_id: &str, latency: u64, last_block: u64) {
+    pub fn update_provider_health(&self, provider: &Provider, latency: u64, last_block: u64) {
         let health = Health::new(latency, last_block);
-        self.health_map.insert(provider_id.to_string(), health);
+        self.health_map.insert(provider.id().to_string(), health);
     }
 
 }

@@ -1,4 +1,3 @@
-use std::hash::DefaultHasher;
 use getset::Getters;
 
 #[derive(Debug, Clone, Getters)]
@@ -20,6 +19,9 @@ pub struct Provider {
 
     #[get = "pub"]
     default: bool,
+
+    health_path : String,
+
 }
 
 impl Provider {
@@ -29,6 +31,7 @@ impl Provider {
         host: impl Into<String>,
         port: u16,
         priority: u8,
+        health_path : impl Into<String>,
         default: bool,
     ) -> Self {
         Self {
@@ -37,7 +40,13 @@ impl Provider {
             host: host.into(),
             port,
             priority,
+            health_path :  health_path .into(),
             default
         }
     }
+    pub fn get_health_endpoint_url(&self) -> String {
+        format!("https://{}:{}{}", self.host, self.port, self.health_path)
+    }
+
 }
+
