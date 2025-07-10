@@ -1,6 +1,6 @@
 use actix_web::{post, web, HttpResponse, HttpRequest, Responder, get};
 use reqwest::Client;
-use crate::state::AppState;
+use crate::model::AppState;
 
 #[get("/")]
 pub async fn ping() -> impl Responder {
@@ -29,10 +29,10 @@ pub async fn handle_rpc(
         .headers()
         .get("X-Chain-Id")
         .and_then(|v| v.to_str().ok())
-        .unwrap_or(&state.default_chain);
+        .unwrap_or("");
 
 
-    let url = match state.get_provider(chain_id) {
+    let url = match state.select_best_provider(chain_id) {
         Some(url) => url,
         None => return HttpResponse::BadRequest().json(serde_json::json!({
             "error": format!("No RPC configured for chain ID '{}'", chain_id)

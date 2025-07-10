@@ -1,7 +1,7 @@
 use actix_web::{web, App, HttpServer};
 
 use crate::endpoints;
-use crate::state::AppState;
+use crate::model::AppState;
 use crate::config::AppConfig;
 
 pub async fn run() -> std::io::Result<()> {

@@ -1,6 +1,6 @@
 mod server;
 mod config;
-mod state;
+mod model;
 mod endpoints;
 
 #[actix_web::main]
