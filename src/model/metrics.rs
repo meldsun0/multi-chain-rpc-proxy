@@ -32,8 +32,6 @@ pub struct Metrics {
     pub blockchains: Vec<BlockchainMetrics>,
 }
 
-
-
 impl ProviderMetrics {
     pub fn generate_metrics(provider: &Provider, health: Option<Health>) -> Result<Self, ()> {
         panic::catch_unwind(|| {
@@ -52,5 +50,20 @@ impl ProviderMetrics {
         }).map_err(|_| {
                 error!("Panic occurred while generating metrics for provider '{}'",provider.id());
         })
+    }
+}
+
+impl BlockchainMetrics {
+    pub fn generate_metrics(id: &str, name: &str, providers_result: Result<Vec<ProviderMetrics>, ()>) -> Result<Self, ()> {
+        providers_result
+            .map(|providers| BlockchainMetrics {
+                id: id.to_string(),
+                name: name.to_string(),
+                providers,
+            })
+            .map_err(|_| {
+                error!("Failed to collect provider metrics for blockchain '{}'",id);
+                ()
+            })
     }
 }

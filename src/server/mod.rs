@@ -5,6 +5,7 @@ use crate::model::AppState;
 use crate::config::AppConfig;
 
 mod endpoints;
+pub mod provider_querier;
 
 pub async fn run() -> std::io::Result<()> {
     let config = match AppConfig::load_from_file("config.yaml") {
@@ -17,7 +18,7 @@ pub async fn run() -> std::io::Result<()> {
 
     let state = Arc::new(AppState::new(&config));
 
-  //  state.init_health_checker();
+     state.init_health_checker();
 
     let actix_state = web::Data::from(state);
 

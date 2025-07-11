@@ -13,3 +13,7 @@ dashmap = "5"
 log = "0.4.27"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
+rand = "0.8"
+
+[features]
+mock = []

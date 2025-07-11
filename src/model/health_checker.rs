@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use reqwest::Client;
 use tokio::time::{Duration};
-use log::{error};
 use crate::model::blockchain::Blockchain;
+use crate::server::provider_querier::ProviderQuerier;
 
 #[derive(Clone)]
 pub struct HealthChecker {
@@ -23,34 +23,18 @@ impl HealthChecker {
         }
     }
 
-     async fn check_blockchain_providers(&self, blockchain: Arc<Blockchain>) {
+
+    async fn check_blockchain_providers(&self, blockchain: Arc<Blockchain>) {
+        let querier = ProviderQuerier::new(self.client.clone());
+
         for provider in blockchain.providers() {
             let url = provider.get_health_endpoint_url();
-            let start = tokio::time::Instant::now();
 
-            match self.client.get(&url).send().await {
-                Ok(response) => {
-                    let latency = start.elapsed().as_millis() as u64;
-                    match response.json::<serde_json::Value>().await {
-                        Ok(json) => {
-                            if let Some(last_block) = json["last_block"].as_u64() {
-                                blockchain.update_provider_health(provider, latency, last_block);
-                            } else {
-                                error!("Provider '{}' at '{}' returned invalid or missing 'last_block': {:?}",provider.id(),url,json);
-                            }
-                        }
-                        Err(e) => {
-                            error!("Failed to parse JSON from provider '{}' at '{}': {}",provider.id(),url,e);
-                        }
-                    }
-                }
-                Err(e) => {
-                    error!("Failed to query provider '{}' at '{}': {}",provider.id(),url,e);
-                }
+            if let Some(resp) = querier.query(&url).await {
+                blockchain.update_provider_health(provider, *resp.last_block(), *resp.latency_ms());
             }
         }
     }
-
 
     pub fn init_health_check_scheduler(self: Arc<Self>, blockchain: Arc<Blockchain>) {
         tokio::spawn(async move {

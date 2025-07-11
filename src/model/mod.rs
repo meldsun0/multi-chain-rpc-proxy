@@ -75,13 +75,7 @@ impl AppState {
                 })
                 .collect();
 
-            providers_result.map(|providers| BlockchainMetrics {
-                id: blockchain.id().to_string(),
-                name: blockchain.name().to_string(),
-                providers,
-            }).map_err(|_| {
-                error!("Failed to collect provider metrics for blockchain '{}'",blockchain.id())
-            })
+            BlockchainMetrics::generate_metrics(blockchain.id(), blockchain.name(), providers_result)
         }).collect();
 
         match blockchains_result {
