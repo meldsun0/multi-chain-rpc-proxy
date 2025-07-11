@@ -1,4 +1,4 @@
-mod provider;
+pub mod provider;
 pub mod blockchain;
 mod provider_health;
 mod health_checker;
@@ -6,23 +6,31 @@ mod health_checker;
 use std::sync::Arc;
 use std::time::Duration;
 use dashmap::DashMap;
+use crate::config::AppConfig;
 use crate::model::blockchain::Blockchain;
 use crate::model::health_checker::HealthChecker;
+use crate::model::provider::Provider;
 
 #[derive(Default)]
 pub struct AppState {
     chains: DashMap<String, Arc<Blockchain>>,
 
-
-
 }
 
 impl AppState {
+    pub fn new(config: &AppConfig) -> Self {
+        let chains = DashMap::new();
 
-    pub fn new() -> Self {
-        Self {
-            chains: DashMap::new(),
+        for bc in &config.blockchains {
+            let mut blockchain = Blockchain::new(bc.id.clone(), bc.name.clone());
+
+            for p in &bc.providers {
+                let provider = Provider::new(p.id.clone(), p.name.clone(), p.host.clone(), p.port, p.path.clone(), p.priority, p.default);
+                blockchain.add_provider(provider);
+            }
+            chains.insert(bc.id.clone(), Arc::new(blockchain));
         }
+        AppState { chains }
     }
 
     pub fn add_blockchain(&self, chain_id: String, blockchain: Blockchain) {

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use reqwest::Client;
-use tokio::time::{interval, Duration, Interval};
+use tokio::time::{Duration};
 use log::{error};
 use crate::model::blockchain::Blockchain;
 

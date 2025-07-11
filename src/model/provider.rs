@@ -14,13 +14,13 @@ pub struct Provider {
     #[get = "pub"]
     port: u16,
 
+    health_path : String,
+
     #[get = "pub"]
     priority: u8,
 
     #[get = "pub"]
     default: bool,
-
-    health_path : String,
 
 }
 
@@ -30,8 +30,8 @@ impl Provider {
         name: impl Into<String>,
         host: impl Into<String>,
         port: u16,
-        priority: u8,
         health_path : impl Into<String>,
+        priority: u8,
         default: bool,
     ) -> Self {
         Self {
@@ -39,8 +39,8 @@ impl Provider {
             name: name.into(),
             host: host.into(),
             port,
-            priority,
             health_path :  health_path .into(),
+            priority,
             default
         }
     }

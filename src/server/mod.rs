@@ -1,14 +1,23 @@
 use std::sync::Arc;
 use actix_web::{web, App, HttpServer};
 
-use crate::endpoints;
 use crate::model::AppState;
 use crate::config::AppConfig;
 
+mod endpoints;
+
 pub async fn run() -> std::io::Result<()> {
-    let config = AppConfig::load();
-    let state = Arc::new(AppState::new());
-    state.init_health_checker();
+    let config = match AppConfig::load_from_file("config.yaml") {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            eprintln!("Failed to load config file: {}", e);
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("{}", e)));
+        }
+    };
+
+    let state = Arc::new(AppState::new(&config));
+
+  //  state.init_health_checker();
 
     let actix_state = web::Data::from(state);
 
