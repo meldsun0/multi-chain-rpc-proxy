@@ -34,6 +34,7 @@ impl HealthChecker {
                 blockchain.update_provider_health(provider, *resp.last_block(), *resp.latency_ms());
             }
         }
+        blockchain.update_rankings();
     }
 
     pub fn init_health_check_scheduler(self: Arc<Self>, blockchain: Arc<Blockchain>) {

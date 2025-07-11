@@ -3,21 +3,11 @@ use log::error;
 use serde::Serialize;
 use crate::model::provider::Provider;
 use crate::model::provider_health::Health;
+use crate::server::provider_ranker::RankedProvider;
 
 #[derive(Serialize)]
-pub struct ProviderMetrics {
-    pub id: String,
-    pub name: String,
-    pub priority: u8,
-    pub default: bool,
-    pub health: Option<HealthData>,
-}
-
-#[derive(Serialize)]
-pub struct HealthData {
-    pub latency_ms: u64,
-    pub last_block: u64,
-    //add last updated value
+pub struct Metrics {
+    pub blockchains: Vec<BlockchainMetrics>,
 }
 
 #[derive(Serialize)]
@@ -28,17 +18,44 @@ pub struct BlockchainMetrics {
 }
 
 #[derive(Serialize)]
-pub struct Metrics {
-    pub blockchains: Vec<BlockchainMetrics>,
+pub struct ProviderMetrics {
+    pub id: String,
+    pub name: String,
+    pub priority: u8,
+    pub default: bool,
+    pub health: Option<HealthMetric>,
+    pub rank: Option<RankedProviderMetric>,
 }
 
+#[derive(Serialize)]
+pub struct HealthMetric {
+    pub latency_ms: u64,
+    pub last_block: u64,
+    //add last updated value
+}
+
+#[derive(Serialize)]
+pub struct RankedProviderMetric {
+    pub score: u64,
+}
+
+
+impl From<&RankedProvider> for RankedProviderMetric {
+    fn from(rp: &RankedProvider) -> Self {
+        Self {
+            score: rp.score
+        }
+    }
+}
 impl ProviderMetrics {
-    pub fn generate_metrics(provider: &Provider, health: Option<Health>) -> Result<Self, ()> {
+    pub fn generate_metrics(provider: &Provider, health: Option<Health>, ranked: Option<&RankedProvider>,) -> Result<Self, ()> {
         panic::catch_unwind(|| {
-            let health_data = health.map(|h| HealthData {
+            let health_data = health.map(|h| HealthMetric {
                 latency_ms: *h.latency(),
                 last_block: *h.last_block(),
             });
+
+            let rank = ranked.map(RankedProviderMetric::from);
 
             ProviderMetrics {
                 id: provider.id().to_string(),
@@ -46,6 +63,7 @@ impl ProviderMetrics {
                 priority: *provider.priority(),
                 default: *provider.default(),
                 health: health_data,
+                rank
             }
         }).map_err(|_| {
                 error!("Panic occurred while generating metrics for provider '{}'",provider.id());

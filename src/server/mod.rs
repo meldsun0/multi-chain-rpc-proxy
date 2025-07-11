@@ -6,6 +6,7 @@ use crate::config::AppConfig;
 
 mod endpoints;
 pub mod provider_querier;
+pub mod provider_ranker;
 
 pub async fn run() -> std::io::Result<()> {
     let config = match AppConfig::load_from_file("config.yaml") {

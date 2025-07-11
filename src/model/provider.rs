@@ -21,7 +21,6 @@ pub struct Provider {
 
     #[get = "pub"]
     default: bool,
-
 }
 
 impl Provider {

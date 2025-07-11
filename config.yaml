@@ -16,7 +16,14 @@ blockchains:
         host: http://localhost
         port: 8546
         path: /health
-        priority: 2
+        priority: 20
+        default: true
+      - id: eht-p3
+        name: Ethereum Provider3
+        host: http://localhost
+        port: 8546
+        path: /health
+        priority: 7
         default: true
   - id: op
     name: Optimism

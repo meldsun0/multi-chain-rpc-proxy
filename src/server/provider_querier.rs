@@ -4,7 +4,6 @@ use getset::Getters;
 use reqwest::Client;
 use serde_json::Value;
 use log::error;
-use rand::Rng;
 use crate::model::blockchain::Blockchain;
 
 pub struct ProviderQuerier {

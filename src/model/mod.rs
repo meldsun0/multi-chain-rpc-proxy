@@ -1,6 +1,6 @@
 pub mod provider;
 pub mod blockchain;
-mod provider_health;
+pub mod provider_health;
 mod health_checker;
 pub mod metrics;
 
@@ -12,7 +12,7 @@ use log::error;
 use crate::config::AppConfig;
 use crate::model::blockchain::Blockchain;
 use crate::model::health_checker::HealthChecker;
-use crate::model::metrics::{BlockchainMetrics, HealthData, Metrics, ProviderMetrics};
+use crate::model::metrics::{BlockchainMetrics, HealthMetric, Metrics, ProviderMetrics};
 use crate::model::provider::Provider;
 
 #[derive(Default)]
@@ -50,27 +50,35 @@ impl AppState {
             let blockchain = Arc::clone(entry.value());
 
             let checker = Arc::new(HealthChecker::new(
-                Duration::from_secs(3),     // Timeout per request
-                Duration::from_secs(30),    // Interval between checks
+                Duration::from_secs(3),
+                Duration::from_secs(30),
             ));
 
             checker.init_health_check_scheduler(blockchain);
         }
     }
-    pub fn select_best_provider(&self, _chain_id:  &str) -> Option<&String> {
-       // self.rpc_urls.get(chain_id)
-        None
+    pub fn get_best_provider_url(&self, chain_id: &str) -> Option<String> {
+        match self.chains.get(chain_id) {
+            Some(entry) => entry.get_best_provider_url(),
+            None => {
+                error!("No blockchain found for chain_id '{}'", chain_id);
+                None
+            }
+        }
     }
     pub fn get_metrics(&self) -> Option<Metrics> {
         let blockchains_result: Result<Vec<BlockchainMetrics>, ()> = self.chains.iter().map(|entry| {
             let blockchain = entry.value();
+            let rankings = blockchain.get_rankings();
 
             let providers_result: Result<Vec<ProviderMetrics>, ()> = blockchain
                 .providers()
                 .iter()
                 .map(|provider| {
                     let health = blockchain.get_provider_health(provider.id());
-                    ProviderMetrics::generate_metrics(provider, health)
+                    let rank = rankings.iter().find(|r| r.id == *provider.id());
+
+                    ProviderMetrics::generate_metrics(provider, health, rank)
                         .map_err(|_| error!("Failed to generate metrics for provider '{}'", provider.id()))
                 })
                 .collect();

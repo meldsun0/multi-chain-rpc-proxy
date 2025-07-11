@@ -3,6 +3,8 @@ use getset::{Getters, Setters};
 use crate::model::provider::Provider;
 use crate::model::provider_health::Health;
 use dashmap::DashMap;
+use crate::server::provider_ranker::{ProviderRanker, RankedProvider};
+
 #[derive(Debug, Clone, Getters, Setters)]
 pub struct Blockchain {
     #[get = "pub"]
@@ -12,6 +14,8 @@ pub struct Blockchain {
     #[get = "pub"]
     providers: Vec<Provider>,
     health_map: Arc<DashMap<String, Health>>,
+    provider_ranker: ProviderRanker,
+
 
 }
 
@@ -22,6 +26,7 @@ impl Blockchain {
             name: name.into(),
             providers: Vec::new(),
             health_map: Arc::new(DashMap::new()),
+            provider_ranker: ProviderRanker::new(),
         }
     }
 
@@ -36,6 +41,28 @@ impl Blockchain {
 
     pub fn get_provider_health(&self, provider_id: &str) -> Option<Health> {
         self.health_map.get(provider_id).map(|entry| entry.clone())
+    }
+
+    pub fn get_rankings(&self) -> Vec<RankedProvider> {
+        self.provider_ranker.get_all()
+    }
+
+    pub fn get_best_provider_url(&self) -> Option<String>{
+        if let Some(ranked) = self.provider_ranker.get_best() {
+            if let Some(provider) = self.get_provider_by_id(&ranked.id) {
+                return Some(provider.get_health_endpoint_url().to_string())
+            }
+        }
+        self.providers
+            .iter()
+            .find(|p| *p.default())
+            .map(|p| p.get_health_endpoint_url().to_string())
+    }
+    pub fn update_rankings(&self){
+        self.provider_ranker.update_rankings(&self.providers, &self.health_map);
+    }
+    fn get_provider_by_id(&self, id: &str) -> Option<&Provider> {
+        self.providers.iter().find(|p| p.id() == id)
     }
 
 }
