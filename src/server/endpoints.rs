@@ -10,10 +10,10 @@ pub async fn ping() -> impl Responder {
 #[get("/metrics")]
 pub async fn metrics(state: web::Data<AppState>) -> impl Responder {
     match state.get_metrics() {
-        Some(response) => HttpResponse::Ok().body(response),
-        None => HttpResponse::InternalServerError().json(serde_json::json!({
-        "error": "No metrics available"
-    })),
+        Some(response) => HttpResponse::Ok().json(response),
+        None => HttpResponse::Ok().json(serde_json::json!({
+            "message": "No metrics available"
+        })),
     }
 }
 

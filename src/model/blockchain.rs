@@ -34,4 +34,8 @@ impl Blockchain {
         self.health_map.insert(provider.id().to_string(), health);
     }
 
+    pub fn get_provider_health(&self, provider_id: &str) -> Option<Health> {
+        self.health_map.get(provider_id).map(|entry| entry.clone())
+    }
+
 }

@@ -2,13 +2,17 @@ pub mod provider;
 pub mod blockchain;
 mod provider_health;
 mod health_checker;
+pub mod metrics;
 
+use std::panic;
 use std::sync::Arc;
 use std::time::Duration;
 use dashmap::DashMap;
+use log::error;
 use crate::config::AppConfig;
 use crate::model::blockchain::Blockchain;
 use crate::model::health_checker::HealthChecker;
+use crate::model::metrics::{BlockchainMetrics, HealthData, Metrics, ProviderMetrics};
 use crate::model::provider::Provider;
 
 #[derive(Default)]
@@ -57,7 +61,35 @@ impl AppState {
        // self.rpc_urls.get(chain_id)
         None
     }
-    pub fn get_metrics(&self) -> Option<String> {
-        None
+    pub fn get_metrics(&self) -> Option<Metrics> {
+        let blockchains_result: Result<Vec<BlockchainMetrics>, ()> = self.chains.iter().map(|entry| {
+            let blockchain = entry.value();
+
+            let providers_result: Result<Vec<ProviderMetrics>, ()> = blockchain
+                .providers()
+                .iter()
+                .map(|provider| {
+                    let health = blockchain.get_provider_health(provider.id());
+                    ProviderMetrics::generate_metrics(provider, health)
+                        .map_err(|_| error!("Failed to generate metrics for provider '{}'", provider.id()))
+                })
+                .collect();
+
+            providers_result.map(|providers| BlockchainMetrics {
+                id: blockchain.id().to_string(),
+                name: blockchain.name().to_string(),
+                providers,
+            }).map_err(|_| {
+                error!("Failed to collect provider metrics for blockchain '{}'",blockchain.id())
+            })
+        }).collect();
+
+        match blockchains_result {
+            Ok(blockchains) => Some(Metrics { blockchains }),
+            Err(_) => {
+                error!("Failed to build metrics: one or more blockchain metrics could not be generated.");
+                None
+            }
+        }
     }
 }
