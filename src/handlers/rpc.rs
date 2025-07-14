@@ -1,28 +1,12 @@
-use actix_web::{post, web, HttpResponse, HttpRequest, Responder, get};
+use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use reqwest::Client;
-use crate::model::AppState;
-
-#[get("/")]
-pub async fn ping() -> impl Responder {
-    HttpResponse::Ok().body("Multi-Chain RPC Proxy up!".to_string())
-}
-
-#[get("/metrics")]
-pub async fn metrics(state: web::Data<AppState>) -> impl Responder {
-    match state.get_metrics() {
-        Some(response) => HttpResponse::Ok().json(response),
-        None => HttpResponse::Ok().json(serde_json::json!({
-            "message": "No metrics available"
-        })),
-    }
-}
-
+use crate::model::rpc_proxy::RPCProxy;
 
 #[post("/rpc")]
-pub async fn handle_rpc(
+pub async fn rpc(
     req_body: String,
     req: HttpRequest,
-    state: web::Data<AppState>,
+    state: web::Data<RPCProxy>,
 ) -> impl Responder {
 
     let chain_id = match req.headers().get("X-Chain-Id").and_then(|v| v.to_str().ok()) {

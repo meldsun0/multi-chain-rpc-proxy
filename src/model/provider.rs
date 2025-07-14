@@ -1,5 +1,4 @@
 use getset::Getters;
-
 #[derive(Debug, Clone, Getters)]
 pub struct Provider {
     #[get = "pub"]
@@ -46,6 +45,5 @@ impl Provider {
     pub fn get_health_endpoint_url(&self) -> String {
         format!("https://{}:{}{}", self.host, self.port, self.health_path)
     }
-
 }
 

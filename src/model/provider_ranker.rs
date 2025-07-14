@@ -1,15 +1,21 @@
 use std::cmp::Ordering;
 use std::sync::{Arc, RwLock};
+use getset::{Getters};
 use crate::model::provider::Provider;
 use crate::model::provider_health::Health;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Getters)]
 pub struct RankedProvider {
-    pub id: String,
-    pub score: u64,
-    pub latency_ms: u64,
-    pub last_block: u64,
-    pub priority: u8,
+    #[get = "pub"]
+    id: String,
+    #[get = "pub"]
+    score: u64,
+    #[get = "pub"]
+    latency_ms: u64,
+    #[get = "pub"]
+    last_block: u64,
+    #[get = "pub"]
+    priority: u8,
 }
 
 #[derive(Clone, Debug)]

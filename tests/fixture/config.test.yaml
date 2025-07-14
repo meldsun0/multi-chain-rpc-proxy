@@ -1,0 +1,45 @@
+host: "127.0.0.1"
+port: 8080
+blockchains:
+  - id: eth
+    name: Ethereum
+    providers:
+      - id: eth-p1
+        name: Ethereum Provider1
+        host: http://localhost
+        port: 8545
+        path: /health
+        priority: 1
+        default: false
+      - id: eht-p2
+        name: Ethereum Provider2
+        host: http://localhost
+        port: 8546
+        path: /health
+        priority: 20
+        default: true
+      - id: eht-p3
+        name: Ethereum Provider3
+        host: http://localhost
+        port: 8546
+        path: /health
+        priority: 7
+        default: true
+  - id: op
+    name: Optimism
+    providers:
+      - id: op-p1
+        name: Optimism Provider1
+        host: http://localhost
+        port: 8545
+        path: /health
+        priority: 2
+        default: true
+      - id: op-p2
+        name: Optimism Provider2
+        host: http://localhost
+        port: 8546
+        path: /health
+        priority: 1
+        default: false
+

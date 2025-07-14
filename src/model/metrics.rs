@@ -1,87 +1,59 @@
-use std::panic;
-use log::error;
 use serde::Serialize;
-use crate::model::provider::Provider;
+use derive_new::new;
+use getset::Getters;
 use crate::model::provider_health::Health;
-use crate::server::provider_ranker::RankedProvider;
+use crate::model::provider_ranker::{RankedProvider};
 
-#[derive(Serialize)]
+#[derive(Serialize, new, Getters)]
 pub struct Metrics {
-    pub blockchains: Vec<BlockchainMetrics>,
+    blockchains: Vec<BlockchainMetrics>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, new, Getters)]
 pub struct BlockchainMetrics {
-    pub id: String,
-    pub name: String,
-    pub providers: Vec<ProviderMetrics>,
+    #[get = "pub"]
+    id: String,
+    name: String,
+    #[get = "pub"]
+    providers: Vec<ProviderMetrics>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, new, Getters)]
 pub struct ProviderMetrics {
-    pub id: String,
-    pub name: String,
-    pub priority: u8,
-    pub default: bool,
-    pub health: Option<HealthMetric>,
-    pub rank: Option<RankedProviderMetric>,
+    #[get = "pub"]
+    id: String,
+    name: String,
+    priority: u8,
+    default: bool,
+    #[get = "pub"]
+    health: Option<HealthMetric>,
+    #[get = "pub"]
+    rank: Option<RankedProviderMetric>,
 }
-
-#[derive(Serialize)]
+#[derive(Serialize, new)]
 pub struct HealthMetric {
-    pub latency_ms: u64,
-    pub last_block: u64,
-    //add last updated value
+    latency_ms: u64,
+    last_block: u64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, new)]
 pub struct RankedProviderMetric {
-    pub score: u64,
+    score: u64,
 }
-
 
 impl From<&RankedProvider> for RankedProviderMetric {
     fn from(rp: &RankedProvider) -> Self {
         Self {
-            score: rp.score
+            score: *rp.score(),
         }
     }
 }
-impl ProviderMetrics {
-    pub fn generate_metrics(provider: &Provider, health: Option<Health>, ranked: Option<&RankedProvider>,) -> Result<Self, ()> {
-        panic::catch_unwind(|| {
-            let health_data = health.map(|h| HealthMetric {
-                latency_ms: *h.latency(),
-                last_block: *h.last_block(),
-            });
 
-            let rank = ranked.map(RankedProviderMetric::from);
-
-            ProviderMetrics {
-                id: provider.id().to_string(),
-                name: provider.name().to_string(),
-                priority: *provider.priority(),
-                default: *provider.default(),
-                health: health_data,
-                rank
-            }
-        }).map_err(|_| {
-                error!("Panic occurred while generating metrics for provider '{}'",provider.id());
-        })
-    }
-}
-
-impl BlockchainMetrics {
-    pub fn generate_metrics(id: &str, name: &str, providers_result: Result<Vec<ProviderMetrics>, ()>) -> Result<Self, ()> {
-        providers_result
-            .map(|providers| BlockchainMetrics {
-                id: id.to_string(),
-                name: name.to_string(),
-                providers,
-            })
-            .map_err(|_| {
-                error!("Failed to collect provider metrics for blockchain '{}'",id);
-                ()
-            })
+impl From<&Health> for HealthMetric {
+    fn from(h: &Health) -> Self {
+        Self {
+            latency_ms: *h.latency(),
+            last_block: *h.last_block(),
+        }
     }
 }

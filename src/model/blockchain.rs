@@ -3,7 +3,7 @@ use getset::{Getters, Setters};
 use crate::model::provider::Provider;
 use crate::model::provider_health::Health;
 use dashmap::DashMap;
-use crate::server::provider_ranker::{ProviderRanker, RankedProvider};
+use crate::model::provider_ranker::{ProviderRanker, RankedProvider};
 
 #[derive(Debug, Clone, Getters, Setters)]
 pub struct Blockchain {
@@ -15,8 +15,6 @@ pub struct Blockchain {
     providers: Vec<Provider>,
     health_map: Arc<DashMap<String, Health>>,
     provider_ranker: ProviderRanker,
-
-
 }
 
 impl Blockchain {
@@ -49,7 +47,7 @@ impl Blockchain {
 
     pub fn get_best_provider_url(&self) -> Option<String>{
         if let Some(ranked) = self.provider_ranker.get_best() {
-            if let Some(provider) = self.get_provider_by_id(&ranked.id) {
+            if let Some(provider) = self.get_provider_by_id(&ranked.id()) {
                 return Some(provider.get_health_endpoint_url().to_string())
             }
         }
@@ -66,3 +64,4 @@ impl Blockchain {
     }
 
 }
+
