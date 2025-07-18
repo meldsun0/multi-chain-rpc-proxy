@@ -1,3 +1,5 @@
+pub mod mock_forwarder;
+
 use async_trait::async_trait;
 use rpc_proxy_meldsun0::model::blockchain::Blockchain;
 use rpc_proxy_meldsun0::model::provider::Provider;
@@ -17,7 +19,7 @@ pub fn create_dummy_blockchain() -> Blockchain {
 
     let mut blockchain = Blockchain::new("chain1", "chain1");
     blockchain.add_provider(provider.clone());
-    blockchain.update_provider_health(&provider,100, 123456);
+    blockchain.update_provider_health(provider.id().to_string(),100, 123456);
     blockchain.update_rankings();
     blockchain
 }

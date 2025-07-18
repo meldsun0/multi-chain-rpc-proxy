@@ -1,19 +1,19 @@
 use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use reqwest::Client;
 use crate::model::rpc_proxy::RPCProxy;
+use crate::services::request_forwarder::{ForwarderResponse, HttpForwarder};
 
-#[post("/rpc")]
-pub async fn rpc(
+#[post("/rpc")]pub async fn rpc(
     req_body: String,
     req: HttpRequest,
-    state: web::Data<RPCProxy>,
+    state: web::Data<RPCProxy>
 ) -> impl Responder {
 
     let chain_id = match req.headers().get("X-Chain-Id").and_then(|v| v.to_str().ok()) {
         Some(id) if !id.is_empty() => id,
         _ => {
             return HttpResponse::BadRequest().json(serde_json::json!({
-                "error": "Missing or invalid 'X-Chain-Id' header"
+                "error": "Missing 'X-Chain-Id' HTTP header"
             }));
         }
     };
@@ -25,23 +25,16 @@ pub async fn rpc(
         })),
     };
 
-
-    let client = Client::new();
-    let result = client
-        .post(url)
-        .header("Content-Type", "application/json")
-        .body(req_body)
-        .send()
-        .await;
-
-    match result {
-        Ok(response) => {
-            let status = response.status();
-            let body = response.bytes().await.unwrap_or_default();
-            HttpResponse::build(status).body(body)
+    match state.get_forwarder().forward(url, req_body).await {
+        ForwarderResponse::Success { status, body } => {
+            HttpResponse::build(actix_web::http::StatusCode::from_u16(status).unwrap_or_default())
+                .content_type("application/json")
+                .body(body.to_string())
         }
-        Err(err) => HttpResponse::InternalServerError().json(serde_json::json!({
-            "error": format!("RPC forward error: {}", err)
-        })),
+        ForwarderResponse::Error(err) => {
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": format!("RPC forward error: {}", err)
+            }))
+        }
     }
 }

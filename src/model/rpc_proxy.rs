@@ -8,14 +8,15 @@ use crate::model::metrics::{BlockchainMetrics, Metrics};
 use crate::services::health_checker::{HealthChecker, ProviderQuery};
 use crate::services::metrics_generator::MetricGenerator;
 use crate::services::default_provider_client::{DefaultProviderQuerier};
+use crate::services::request_forwarder::HttpForwarder;
 
-#[derive(Default)]
 pub struct RPCProxy {
-    chains: DashMap<String, Arc<Blockchain>>
+    chains: DashMap<String, Arc<Blockchain>>,
+    forwarder: Arc<dyn HttpForwarder>,
 }
 
 impl RPCProxy {
-    pub fn new(config: &Config) -> Self {
+    pub fn new(config: &Config,  forwarder: Arc<dyn HttpForwarder>) -> Self {
         let chains = DashMap::new();
 
         config.blockchains
@@ -24,7 +25,7 @@ impl RPCProxy {
                 chains.insert(bc.id.clone(), Arc::new(Blockchain::from(bc)));
             });
 
-        RPCProxy { chains }
+        RPCProxy { chains, forwarder }
     }
 
     pub fn add_blockchain(&self, chain_id: String, blockchain: Blockchain) {
@@ -69,5 +70,9 @@ impl RPCProxy {
                 None
             }
         }
+    }
+
+    pub fn get_forwarder(&self) -> Arc<dyn HttpForwarder> {
+        Arc::clone(&self.forwarder)
     }
 }

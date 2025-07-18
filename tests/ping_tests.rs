@@ -4,13 +4,14 @@ use actix_web::{test, web, App};
 use rpc_proxy_meldsun0::config::Config;
 use rpc_proxy_meldsun0::handlers::ping::ping;
 use rpc_proxy_meldsun0::model::rpc_proxy::RPCProxy;
+use crate::helpers::mock_forwarder::MockForwarder;
 
 mod helpers;
 
 #[actix_web::test]
 async fn test_ping_endpoint() {
     let config = Config::load_from_file("tests/fixture/config.test.yaml").unwrap();
-    let rpc_proxy = Arc::new(RPCProxy::new(&config));
+    let rpc_proxy = Arc::new(RPCProxy::new(&config,  Arc::new(MockForwarder::new())));
     let app = test::init_service(
         App::new()
             .app_data(web::Data::from(rpc_proxy))

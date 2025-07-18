@@ -33,7 +33,7 @@ impl HealthChecker {
             let url = provider.get_health_endpoint_url();
 
             if let Some(resp) = querier.query(&url).await {
-                blockchain.update_provider_health(provider, *resp.last_block(), *resp.latency_ms());
+                blockchain.update_provider_health(provider.id().to_string(), *resp.last_block(), *resp.latency_ms());
             }
         }
         blockchain.update_rankings();

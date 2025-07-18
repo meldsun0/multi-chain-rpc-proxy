@@ -32,12 +32,14 @@ impl Blockchain {
         self.providers.push(provider);
     }
 
-    pub fn update_provider_health(&self, provider: &Provider, latency: u64, last_block: u64) {
+    pub fn update_provider_health(&self, provider_id: String, latency: u64, last_block: u64) {
+        //TODO check provider id is valid.
         let health = Health::new(latency, last_block);
-        self.health_map.insert(provider.id().to_string(), health);
+        self.health_map.insert(provider_id, health);
     }
 
     pub fn get_provider_health(&self, provider_id: &str) -> Option<Health> {
+        //TODO check provider id is valid.
         self.health_map.get(provider_id).map(|entry| entry.clone())
     }
 
@@ -60,6 +62,7 @@ impl Blockchain {
         self.provider_ranker.update_rankings(&self.providers, &self.health_map);
     }
     fn get_provider_by_id(&self, id: &str) -> Option<&Provider> {
+        //TODO check provider id is valid.
         self.providers.iter().find(|p| p.id() == id)
     }
 

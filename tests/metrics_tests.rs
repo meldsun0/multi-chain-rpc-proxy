@@ -8,12 +8,13 @@ use rpc_proxy_meldsun0::config::Config;
 use rpc_proxy_meldsun0::handlers::metrics::metrics;
 
 use rpc_proxy_meldsun0::model::rpc_proxy::RPCProxy;
+use crate::helpers::mock_forwarder::MockForwarder;
 use crate::helpers::MockQuerier;
 
 #[actix_web::test]
 async fn test_metrics_endpoint() {
     let config = Config::load_from_file("tests/fixture/config.test.yaml").unwrap();
-    let rpc_proxy = Arc::new(RPCProxy::new(&config));
+    let rpc_proxy = Arc::new(RPCProxy::new(&config, Arc::new(MockForwarder::new())));
 
     rpc_proxy.init_health_checker(MockQuerier);
     let app = test::init_service(
