@@ -1,4 +1,3 @@
-use actix_web::web::block;
 use rpc_proxy_meldsun0::model::blockchain::Blockchain;
 use rpc_proxy_meldsun0::model::provider::Provider;
 
