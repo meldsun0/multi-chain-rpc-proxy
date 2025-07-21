@@ -35,7 +35,7 @@ graph LR
 
 ```
 ### Quickstart:
-- run ```sh cargo run``` 
+- run ```cargo run``` 
 
 ### RPC Proxy Configuration
 
