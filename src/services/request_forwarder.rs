@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use getset::{Getters, Setters};
 use reqwest::{Client, Response};
 use serde_json::Value;
 
@@ -7,6 +8,7 @@ pub trait HttpForwarder: Send + Sync {
     async fn forward(&self, url: String, body: String) -> ForwarderResponse;
 }
 
+#[derive(Clone)]
 pub enum ForwarderResponse {
     Success {
         status: u16,

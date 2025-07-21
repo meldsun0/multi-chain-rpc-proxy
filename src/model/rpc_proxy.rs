@@ -2,30 +2,32 @@ use std::sync::Arc;
 use actix_web::web::Query;
 use dashmap::DashMap;
 use log::error;
+use crate::cache::cache::{InMemoryKeyValueCache, KeyValueCache};
 use crate::config::Config;
 use crate::model::blockchain::Blockchain;
 use crate::model::metrics::{BlockchainMetrics, Metrics};
 use crate::services::health_checker::{HealthChecker, ProviderQuery};
 use crate::services::metrics_generator::MetricGenerator;
 use crate::services::default_provider_client::{DefaultProviderQuerier};
-use crate::services::request_forwarder::HttpForwarder;
+use crate::services::request_forwarder::{ForwarderResponse, HttpForwarder};
 
 pub struct RPCProxy {
     chains: DashMap<String, Arc<Blockchain>>,
     forwarder: Arc<dyn HttpForwarder>,
+    cache: InMemoryKeyValueCache::<String, ForwarderResponse>,
 }
 
 impl RPCProxy {
     pub fn new(config: &Config,  forwarder: Arc<dyn HttpForwarder>) -> Self {
         let chains = DashMap::new();
-
+        let cache = InMemoryKeyValueCache::<String, ForwarderResponse>::new();
         config.blockchains
             .iter()
             .for_each(|bc| {
                 chains.insert(bc.id.clone(), Arc::new(Blockchain::from(bc)));
             });
 
-        RPCProxy { chains, forwarder }
+        RPCProxy { chains, forwarder, cache }
     }
 
     pub fn add_blockchain(&self, chain_id: String, blockchain: Blockchain) {
@@ -72,7 +74,18 @@ impl RPCProxy {
         }
     }
 
-    pub fn get_forwarder(&self) -> Arc<dyn HttpForwarder> {
-        Arc::clone(&self.forwarder)
+    pub async fn forward(&self, url: String, body: String) -> ForwarderResponse {
+        let key = self.hash_url_and_body(&url, &body);
+        if let Some(cached) = self.cache.get(&key) {
+            return cached;
+        }
+        let response = self.forwarder.forward(url, body).await;
+        self.cache.set(key.clone(), response.clone(), 10);
+        response
+    }
+
+     fn hash_url_and_body(&self, url: &str, body: &str) -> String {
+        let input = format!("{}|{}", url, body);
+        blake3::hash(input.as_bytes()).to_hex().to_string()
     }
 }

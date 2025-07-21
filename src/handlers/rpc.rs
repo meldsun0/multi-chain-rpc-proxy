@@ -1,5 +1,4 @@
 use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
-use reqwest::Client;
 use crate::model::rpc_proxy::RPCProxy;
 use crate::services::request_forwarder::{ForwarderResponse, HttpForwarder};
 
@@ -25,7 +24,7 @@ use crate::services::request_forwarder::{ForwarderResponse, HttpForwarder};
         })),
     };
 
-    match state.get_forwarder().forward(url, req_body).await {
+    match state.forward(url, req_body).await {
         ForwarderResponse::Success { status, body } => {
             HttpResponse::build(actix_web::http::StatusCode::from_u16(status).unwrap_or_default())
                 .content_type("application/json")

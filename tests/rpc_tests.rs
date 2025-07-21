@@ -88,3 +88,4 @@ async fn test_successful_response() {
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 }
+
