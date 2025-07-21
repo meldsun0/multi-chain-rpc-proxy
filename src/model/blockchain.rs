@@ -48,6 +48,7 @@ impl Blockchain {
     }
 
     pub fn get_best_provider_url(&self) -> Option<String>{
+        //TODO improve error handling.
         if let Some(ranked) = self.provider_ranker.get_best() {
             if let Some(provider) = self.get_provider_by_id(&ranked.id()) {
                 return Some(provider.get_health_endpoint_url().to_string())

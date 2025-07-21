@@ -1,12 +1,6 @@
 ## Multi-Chain RPC Proxy
 
-### **Context**
-
-In Web3 infrastructure, reliable and high-performance access to blockchain data via RPCs is fundamental. While having multiple RPC providers offers basic failover to avoid Single Points of Failure (SPOF) and manage rate limits, simply falling back isn't always optimal. We can do better by intelligently routing requests to the *best* available provider based on real-time performance and health metrics.
-
-### **Challenge**
-
-Your task is to implement a high-performance Rust service that functions as a smart reverse proxy for JSON-RPC requests targeting EVM-compatible blockchains. It should intelligently route incoming requests to an optimal backend provider selected from a configured pool, considering various health and performance criteria across different chains.
+Multi-Chain RPC proxy routes requests to the best available provider based on real-time performance and health metrics.
 
 ```mermaid
 graph LR
@@ -40,49 +34,135 @@ graph LR
     end
 
 ```
+### Quickstart:
+- run ```sh cargo run``` 
 
-### Requirements
+### RPC Proxy Configuration
 
-1. **RPC Routing:**
-    - Accept incoming JSON POST requests representing JSON-RPC calls.
-    - Determine the target blockchain based on an `X-Chain-Id` HTTP header in the request or fallback to a default
-    - Forward the request to a chosen backend RPC provider for that chain.
-    - Handle cases where a requested `X-Chain-Id` has no configured RPCs.
-2. **Provider Selection:**
-    - Implement logic to rank available backend RPC providers for a given chain based on multiple criteria.
-    - Consider at least three ranking factors:
-        - Network Latency
-        - Latest Block Height reported by the provider
-        - A static Provider Priority (configured per provider)
-    - Combine these factors using a weighted or similar algorithm to produce a final ranking.
-3. **Provider Monitoring:**
-    - Periodically monitor the health and gather necessary metrics (latency, block height) from all configured backend RPC providers concurrently.
-    - Use these metrics to inform the ranking logic.
-4. **Caching:**
-    - Implement a simple in-memory cache for RPC responses to reduce redundant calls to backend providers.
-    - Apply a Time-To-Live (TTL) to cache entries.
-    - **Constraint:** The core cache logic (storage, expiry) must be implemented using standard Rust collections and concurrency primitives. **Do not rely on external caching crates or frameworks.**
-5. **Metrics Endpoint:**
-    - Provide a separate HTTP endpoint (e.g., `/metrics`) that exposes the current health status, metrics, and computed rankings for each chain
+Multi-Chain RPC proxy uses a YAML configuration file to define the server settings and available blockchain providers. Below is an overview of how to use and structure the config file.
+## Example Configuration
 
-### Suggestions
+```yaml
+host: "127.0.0.1"
+port: 8080
+blockchains:
+   - id: eth
+     name: Ethereum
+     providers:
+        - id: eth-p1
+          name: Ethereum Provider1
+          host: http://localhost
+          port: 8545
+          path: /health
+          priority: 1
+          default: false
+        - id: eht-p2
+          name: Ethereum Provider2
+          host: http://localhost
+          port: 8546
+          path: /health
+          priority: 20
+          default: true
+        - id: eht-p3
+          name: Ethereum Provider3
+          host: http://localhost
+          port: 8546
+          path: /health
+          priority: 7
+          default: true
+   - id: op
+     name: Optimism
+     providers:
+        - id: op-p1
+          name: Optimism Provider1
+          host: http://localhost
+          port: 8545
+          path: /health
+          priority: 2
+          default: true
+        - id: op-p2
+          name: Optimism Provider2
+          host: http://localhost
+          port: 8546
+          path: /health
+          priority: 1
+          default: false
+ ```    
 
-You may want to take a look to the following crates:
+## Endpoints:
+- GET `/`
+- GET `/metrics`
+- POST `/rpc`
 
-- https://tokio.rs/
-- https://docs.rs/thiserror/latest/thiserror/
-- https://actix.rs/
-- https://docs.rs/anyhow/latest/anyhow/
+### Get  /
+The GET `/` endpoint is a simple health check endpoint
+#### Example
+##### Request
+```shell
+curl curl http://localhost:8080/
+```
+##### Response
+```shell
+Multi-Chain RPC Proxy up!
+```
+### Get Metrics
+The GET`/metrics` endpoint provides real-time health and ranking data for all configured blockchains and their respective providers.
 
-### Evaluation Criteria
+#### Example
 
-At Wonderland we strive for excellence in every single thing we do. That’s why while looking at your challenge, besides working correctly, we will also take into account:
+##### Request
+```shell
+curl curl http://localhost:8080/metrics
+```
 
-- **Idiomatic Rust & Safety:** Effective use of language features, ownership, borrowing, and concurrency primitives.
-- **Best practices:** Handling of errors, provider failures, and edge cases.
-- **Tests, Tests, and More Tests:** Thorough testing — not just unit tests, but also integration, and benchmarks for reliable, production-grade code will score significantly higher.
-- **Documentation**: Does your README explain how to run your project and what it does? Is your code clear and explained?
+##### Response 
+```json
+{
+  "blockchains": [
+    {
+      "id": "eth",
+      "name": "Ethereum",
+      "providers": [
+        {
+          "id": "eth-p1",
+          "name": "Ethereum Provider1",
+          "priority": 1,
+          "default": false,
+          "health": {
+            "latency_ms": 232,
+            "last_block": 111
+          },
+          "rank": {
+            "score": 5293
+          }
+        },
+        ...
+      ]
+    },
+    ...
+  ]
+}
+```
 
-### Deliverables
+### POST RCP
+The POST`/rpc` accepts incoming JSON POST requests representing JSON-RPC calls and forwards it to a target blockchain based on 
+an `X-Chain-Id` `HTTP header` in the request: 
+- The selected provider will depend on `calculate_score(latency, last_block, priority)` .
+- The provider request will be catched according to a defined Time-To-Live (TTL).
+- A default provider will be used in case of error when fetching the best provider. 
 
-A GitHub repository containing the developed code, including instructions on how to set up and run the application.# rust-challenge
+#### Example
+##### Request
+```shell
+ curl -X POST http://localhost:8080/rpc \
+  -H "Content-Type: application/json" \
+  -H "X-Chain-Id: eth" \
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+```
+### Testing
+- run ```sh cargo nextest run ```. You must have nextest installed:
+   - ```shcargo install cargo-nextest ```
+
+
+
+
