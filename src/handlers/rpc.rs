@@ -1,6 +1,6 @@
 use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use crate::model::rpc_proxy::RPCProxy;
-use crate::services::request_forwarder::{ForwarderResponse, HttpForwarder};
+use crate::services::request_forwarder::{ForwarderResponse};
 
 #[post("/rpc")]pub async fn rpc(
     req_body: String,

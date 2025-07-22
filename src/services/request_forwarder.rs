@@ -1,6 +1,5 @@
 use async_trait::async_trait;
-use getset::{Getters, Setters};
-use reqwest::{Client, Response};
+use reqwest::{Client};
 use serde_json::Value;
 
 #[async_trait]

@@ -1,11 +1,12 @@
 use std::sync::Arc;
+use log::warn;
 use tokio::time::{Duration};
 use crate::model::blockchain::Blockchain;
-use crate::services::default_provider_client::{ProviderResponse};
+use crate::services::default_provider_client::{ProviderQueryError, ProviderResponse};
 
 #[async_trait::async_trait]
 pub trait ProviderQuery: Send + Sync {
-    async fn query(&self, url: &str) -> Option<ProviderResponse>;
+    async fn query(&self, url: &str) -> Result<ProviderResponse, ProviderQueryError>;
 }
 
 #[derive(Clone)]
@@ -32,8 +33,19 @@ impl HealthChecker {
         for provider in blockchain.providers() {
             let url = provider.get_health_endpoint_url();
 
-            if let Some(resp) = querier.query(&url).await {
-                blockchain.update_provider_health(provider.id().to_string(), *resp.last_block(), *resp.latency_ms());
+            match querier.query(&url).await {
+                Ok(resp) => {
+                    if let Err(e) = blockchain.update_provider_health(
+                        provider.id().to_string(),
+                        *resp.latency_ms(),
+                        *resp.last_block(),
+                    ) {
+                        warn!("Failed to update health for provider '{}': {:?}",provider.id(),e);
+                    }
+                }
+                Err(e) => {
+                    warn!("Failed to query provider '{}': {}",provider.id(),e);
+                }
             }
         }
         blockchain.update_rankings();

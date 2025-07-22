@@ -1,9 +1,8 @@
-
 use std::fs;
 use serde::Deserialize;
 use anyhow::{Context, Result};
 use crate::model::blockchain::Blockchain;
-use crate::model::provider::Provider;
+use crate::model::provider::{Provider, ProviderError};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
@@ -27,7 +26,7 @@ pub struct ProviderConfig {
     pub port: u16,
     pub path: String,
     pub priority: u8,
-    pub default: bool
+    pub default: bool,
 }
 
 impl Config {
@@ -39,16 +38,30 @@ impl Config {
     }
 }
 
-impl From<&BlockchainConfig> for Blockchain {
-    fn from(cfg: &BlockchainConfig) -> Self {
+impl TryFrom<&BlockchainConfig> for Blockchain {
+    type Error = anyhow::Error;
+    fn try_from(cfg: &BlockchainConfig) -> Result<Self, Self::Error> {
         let mut blockchain = Blockchain::new(cfg.id.clone(), cfg.name.clone());
-        cfg.providers.iter().map(Provider::from).for_each(|p| blockchain.add_provider(p));
-        blockchain
+
+        for provider_cfg in &cfg.providers {
+            let provider = Provider::try_from(provider_cfg).with_context(|| format!("Failed to convert provider '{}'", provider_cfg.id))?;
+            blockchain.add_provider(provider);
+        }
+        Ok(blockchain)
     }
 }
 
-impl From<&ProviderConfig> for Provider {
-    fn from(p: &ProviderConfig) -> Self {
-        Provider::new(p.id.clone(), p.name.clone(), p.host.clone(), p.port, p.path.clone(), p.priority, p.default)
+impl TryFrom<&ProviderConfig> for Provider {
+    type Error = ProviderError;
+    fn try_from(p: &ProviderConfig) -> Result<Self, Self::Error> {
+        Provider::new(
+            p.id.clone(),
+            p.name.clone(),
+            p.host.clone(),
+            p.port,
+            p.path.clone(),
+            p.priority,
+            p.default,
+        )
     }
 }

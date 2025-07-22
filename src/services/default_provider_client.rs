@@ -1,15 +1,36 @@
 use std::time::Duration;
 use async_trait::async_trait;
 use derive_new::new;
-use getset::{Getters, Setters};
+use getset::{Getters};
 use log::error;
 use reqwest::Client;
 use serde_json::Value;
+use thiserror::Error;
 use crate::services::health_checker::ProviderQuery;
 
 #[derive(Clone)]
 pub struct DefaultProviderQuerier {
     client: Client,
+}
+
+#[derive(Debug, Error)]
+pub enum ProviderQueryError {
+    #[error("Failed to perform request to '{url}': {source}")]
+    Request {
+        url: String,
+        #[source]
+        source: reqwest::Error,
+    },
+
+    #[error("Failed to parse JSON from '{url}': {source}")]
+    JsonParse {
+        url: String,
+        #[source]
+        source: reqwest::Error,
+    },
+
+    #[error("Missing or invalid 'last_block' field from '{url}'")]
+    MissingLastBlock { url: String },
 }
 
 impl DefaultProviderQuerier {
@@ -33,32 +54,28 @@ pub struct ProviderResponse {
 
 #[async_trait]
 impl ProviderQuery for DefaultProviderQuerier {
-    async fn query(&self, url: &str) -> Option<ProviderResponse> {
+    async fn query(&self, url: &str) -> Result<ProviderResponse, ProviderQueryError> {
         let start = tokio::time::Instant::now();
-        match self.client.get(url).send().await {
-            Ok(response) => {
-                let latency = start.elapsed().as_millis() as u64;
+        let response = self.client.get(url).send().await.map_err(|e| {
+            ProviderQueryError::Request {
+                url: url.to_string(),
+                source: e,
+            }
+        })?;
+        let latency = start.elapsed().as_millis() as u64;
+        let json = response.json::<Value>().await.map_err(|e| {
+            ProviderQueryError::JsonParse {
+                url: url.to_string(),
+                source: e,
+            }
+        })?;
+        let last_block = json["last_block"]
+            .as_u64()
+            .ok_or_else(|| ProviderQueryError::MissingLastBlock {
+                url: url.to_string(),
+            })?;
 
-                match response.json::<Value>().await {
-                    Ok(json) => {
-                        if let Some(last_block) = json["last_block"].as_u64() {
-                            Some(ProviderResponse::new(latency, last_block))
-                        } else {
-                            error!("Invalid or missing 'last_block' at '{}': {:?}", url, json);
-                            None
-                        }
-                    }
-                    Err(e) => {
-                        error!("Failed to parse JSON from '{}': {}", url, e);
-                        None
-                    }
-                }
-            }
-            Err(e) => {
-                error!("Failed to query '{}': {}", url, e);
-                None
-            }
-        }
+        Ok(ProviderResponse::new(latency, last_block))
     }
 }
 

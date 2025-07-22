@@ -14,12 +14,12 @@ use crate::helpers::MockQuerier;
 #[actix_web::test]
 async fn test_metrics_endpoint() {
     let config = Config::load_from_file("tests/fixture/config.test.yaml").unwrap();
-    let rpc_proxy = Arc::new(RPCProxy::new(&config, Arc::new(MockForwarder::new())));
+    let rpc_proxy =  RPCProxy::init(&config, Arc::new(MockForwarder::new())).unwrap();
 
     rpc_proxy.init_health_checker(MockQuerier);
     let app = test::init_service(
         App::new()
-            .app_data(web::Data::from(rpc_proxy))
+            .app_data(web::Data::from(Arc::new(rpc_proxy)))
             .service(metrics)
     ).await;
 

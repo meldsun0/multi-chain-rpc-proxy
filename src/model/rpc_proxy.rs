@@ -1,15 +1,15 @@
 use std::sync::Arc;
-use actix_web::web::Query;
 use dashmap::DashMap;
 use log::error;
 use crate::cache::cache::{InMemoryKeyValueCache, KeyValueCache};
 use crate::config::Config;
 use crate::model::blockchain::Blockchain;
-use crate::model::metrics::{BlockchainMetrics, Metrics};
+use crate::model::metrics::{Metrics};
 use crate::services::health_checker::{HealthChecker, ProviderQuery};
 use crate::services::metrics_generator::MetricGenerator;
-use crate::services::default_provider_client::{DefaultProviderQuerier};
 use crate::services::request_forwarder::{ForwarderResponse, HttpForwarder};
+use anyhow::{Result, Context};
+use thiserror::Error;
 
 pub struct RPCProxy {
     chains: DashMap<String, Arc<Blockchain>>,
@@ -17,25 +17,47 @@ pub struct RPCProxy {
     cache: InMemoryKeyValueCache::<String, ForwarderResponse>,
 }
 
+
+#[derive(Debug, Error)]
+pub enum RPCProxyError {
+    #[error("Failed to initialize blockchain '{0}'")]
+    BlockchainInit(String),
+
+    #[error("Missing blockchain for chain_id '{0}'")]
+    MissingChain(String),
+
+    #[error("Failed to initialize RPCProxy")]
+    InitError(#[from] anyhow::Error),
+
+    #[error("Failed to generate metrics for blockchain '{0}'")]
+    MetricsGeneration(String),
+}
+
 impl RPCProxy {
-    pub fn new(config: &Config,  forwarder: Arc<dyn HttpForwarder>) -> Self {
+    pub fn init(config: &Config, forwarder: Arc<dyn HttpForwarder>) -> Result<Self, RPCProxyError> {
+        Self::new(config, forwarder).map_err(RPCProxyError::InitError)
+    }
+
+    fn new(config: &Config,  forwarder: Arc<dyn HttpForwarder>) -> Result<Self>  {
         let chains = DashMap::new();
         let cache = InMemoryKeyValueCache::<String, ForwarderResponse>::new();
-        config.blockchains
-            .iter()
-            .for_each(|bc| {
-                chains.insert(bc.id.clone(), Arc::new(Blockchain::from(bc)));
-            });
 
-        RPCProxy { chains, forwarder, cache }
+        for bc in &config.blockchains {
+            let blockchain = Blockchain::try_from(bc)
+                .with_context(|| format!("Failed to initialize blockchain '{}'", bc.id))?;
+            chains.insert(bc.id.clone(), Arc::new(blockchain));
+        }
+        Ok(Self { chains, forwarder, cache })
     }
 
     pub fn add_blockchain(&self, chain_id: String, blockchain: Blockchain) {
         self.chains.insert(chain_id, Arc::new(blockchain));
     }
 
-    pub fn get_blockchain(&self, chain_id: &str) -> Option<Arc<Blockchain>> {
-        self.chains.get(chain_id).map(|entry| Arc::clone(&entry))
+    pub fn get_blockchain(&self, chain_id: &str)-> Result<Arc<Blockchain>, RPCProxyError> {
+        self.chains.get(chain_id)
+            .map(|entry| Arc::clone(&entry))
+            .ok_or_else(|| RPCProxyError::MissingChain(chain_id.to_string()))
     }
 
     pub fn init_health_checker<T>(&self, querier: T)
@@ -56,22 +78,16 @@ impl RPCProxy {
             }
         }
     }
-    pub fn get_metrics(&self) -> Option<Metrics> {
-        let blockchains_result: Result<Vec<BlockchainMetrics>, ()> = self.chains.iter().map(|entry| {
-            let blockchain = entry.value();
-            MetricGenerator::generate_metrics(blockchain).map_err(|_| {
-                error!("Failed to generate metrics for blockchain '{}'",blockchain.id());
-                ()
+    pub fn get_metrics(&self) -> Result<Metrics, RPCProxyError> {
+        let blockchains = self.chains.iter()
+            .map(|entry| {
+                let blockchain = entry.value();
+                MetricGenerator::generate_metrics(blockchain)
+                    .map_err(|_| RPCProxyError::MetricsGeneration(blockchain.id().to_string()))
             })
-        }).collect();
+            .collect::<Result<Vec<_>, _>>()?;
 
-        match blockchains_result {
-            Ok(blockchains) => Some(Metrics::new( blockchains )),
-            Err(_) => {
-                error!("Failed to build metrics: one or more blockchain metrics could not be generated.");
-                None
-            }
-        }
+        Ok(Metrics::new(blockchains))
     }
 
     pub async fn forward(&self, url: String, body: String) -> ForwarderResponse {
@@ -89,3 +105,4 @@ impl RPCProxy {
         blake3::hash(input.as_bytes()).to_hex().to_string()
     }
 }
+

@@ -1,9 +1,10 @@
 pub mod mock_forwarder;
 
+use anyhow::Context;
 use async_trait::async_trait;
 use rpc_proxy_meldsun0::model::blockchain::Blockchain;
 use rpc_proxy_meldsun0::model::provider::Provider;
-use rpc_proxy_meldsun0::services::default_provider_client::ProviderResponse;
+use rpc_proxy_meldsun0::services::default_provider_client::{ProviderQueryError, ProviderResponse};
 use rpc_proxy_meldsun0::services::health_checker::ProviderQuery;
 
 pub fn create_dummy_blockchain() -> Blockchain {
@@ -15,11 +16,11 @@ pub fn create_dummy_blockchain() -> Blockchain {
         "/health",
         1,
         true,
-    );
+    ).context("Failed to create provider instance").unwrap();
 
     let mut blockchain = Blockchain::new("chain1", "chain1");
     blockchain.add_provider(provider.clone());
-    blockchain.update_provider_health(provider.id().to_string(),100, 123456);
+    blockchain.update_provider_health(provider.id().to_string(),100, 123456).unwrap();
     blockchain.update_rankings();
     blockchain
 }
@@ -30,7 +31,7 @@ pub struct MockQuerier;
 
 #[async_trait]
 impl ProviderQuery for MockQuerier {
-    async fn query(&self, url: &str) -> Option<ProviderResponse> {
+    async fn query(&self, url: &str) ->  Result<ProviderResponse, ProviderQueryError>{
         use rand::Rng;
         use tokio::time::sleep;
         use std::time::Duration;
@@ -40,6 +41,6 @@ impl ProviderQuery for MockQuerier {
 
         sleep(Duration::from_millis(latency)).await;
         println!("Mocked query: url={} latency={}ms last_block={}", url, latency, last_block);
-        Some(ProviderResponse::new(latency, last_block))
+        Ok(ProviderResponse::new(latency, last_block))
     }
 }

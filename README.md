@@ -35,7 +35,8 @@ graph LR
 
 ```
 ### Quickstart:
-- run ```cargo run``` 
+- Make sure you have [Rust installed](https://rustup.rs/).
+- Run ```cargo run``` 
 
 ### RPC Proxy Configuration
 
@@ -160,8 +161,8 @@ an `X-Chain-Id` `HTTP header` in the request:
   -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
 ```
 ### Testing
-- run ```sh cargo nextest run ```. You must have nextest installed:
-   - ```shcargo install cargo-nextest ```
+- run ```cargo nextest run ```. You must have nextest installed:
+   - ```cargo install cargo-nextest ```
 
 
 
