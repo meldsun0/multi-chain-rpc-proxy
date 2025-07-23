@@ -36,7 +36,7 @@ graph LR
 ```
 ### Quickstart:
 - Make sure you have [Rust installed](https://rustup.rs/).
-- Run ```cargo run``` or ```cargo run -- --log-level debug```
+- Run ```cargo run``` or ```cargo run -- --log-level info```
 
 This should be the expected output:
 
