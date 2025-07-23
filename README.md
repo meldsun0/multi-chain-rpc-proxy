@@ -42,8 +42,10 @@ This should be the expected output:
 
   <img width="1089" height="448" alt="Screen Shot 2025-07-22 at 22 24 13" src="https://github.com/user-attachments/assets/55e22cb0-80ba-4b5d-96a1-0b5cd1d29cbd" />
 
-
-
+### DEV Mode:
+When running devMode you will be mocking; the health endpoint of each provider and the rpc forward call. 
+- Run ```cargo run - --dev```
+  
 ### RPC Proxy Configuration
 
 Multi-Chain RPC proxy uses a YAML configuration file to define the server settings and available blockchain providers. Below is an overview of how to use and structure the config file.
