@@ -5,6 +5,7 @@ use crate::model::provider::Provider;
 use crate::model::provider_health::Health;
 use dashmap::DashMap;
 use thiserror::Error;
+use tracing::info;
 use crate::model::provider_ranker::{ProviderRanker, RankedProvider};
 
 #[derive(Debug, Clone, Getters, Setters)]
@@ -80,6 +81,7 @@ impl Blockchain {
             .map(|p| p.get_health_endpoint_url().to_string())
     }
     pub fn update_rankings(&self) {
+        info!("Updating rankings for {}", self.name);
         self.provider_ranker.update_rankings(&self.providers, &self.health_map);
     }
 

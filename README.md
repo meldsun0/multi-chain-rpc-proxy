@@ -36,7 +36,13 @@ graph LR
 ```
 ### Quickstart:
 - Make sure you have [Rust installed](https://rustup.rs/).
-- Run ```cargo run``` 
+- Run ```cargo run``` or ```cargo run -- --log-level debug```
+
+This should be the expected output:
+
+  <img width="1089" height="448" alt="Screen Shot 2025-07-22 at 22 24 13" src="https://github.com/user-attachments/assets/55e22cb0-80ba-4b5d-96a1-0b5cd1d29cbd" />
+
+
 
 ### RPC Proxy Configuration
 

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use log::warn;
 use tokio::time::{Duration};
+use tracing::info;
 use crate::model::blockchain::Blockchain;
 use crate::services::default_provider_client::{ProviderQueryError, ProviderResponse};
 
@@ -30,6 +31,7 @@ impl HealthChecker {
 
     async fn check_blockchain_providers(&self, blockchain: Arc<Blockchain>) {
         let querier = Arc::clone(&self.querier);
+        info!("Checking {} providers for {}", blockchain.providers().iter().len(), blockchain.name());
         for provider in blockchain.providers() {
             let url = provider.get_health_endpoint_url();
 
@@ -53,8 +55,8 @@ impl HealthChecker {
 
     pub fn init_health_check_scheduler(self: Arc<Self>, blockchain: Arc<Blockchain>) {
         tokio::spawn(async move {
+            info!("Health Checker initiated for blockchain {}", blockchain.name());
             let mut ticker = tokio::time::interval(Duration::from_secs(self.interval_duration));
-
             loop {
                 ticker.tick().await;
                 self.check_blockchain_providers(Arc::clone(&blockchain)).await;

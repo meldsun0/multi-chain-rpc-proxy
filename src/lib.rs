@@ -5,4 +5,6 @@ pub mod handlers;
 
 pub mod cache;
 
+pub mod logger;
+
 

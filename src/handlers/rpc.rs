@@ -1,4 +1,5 @@
 use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
+use tracing::info;
 use crate::model::rpc_proxy::RPCProxy;
 use crate::services::request_forwarder::{ForwarderResponse};
 
@@ -7,7 +8,7 @@ use crate::services::request_forwarder::{ForwarderResponse};
     req: HttpRequest,
     state: web::Data<RPCProxy>
 ) -> impl Responder {
-
+    info!("Received rpc request");
     let chain_id = match req.headers().get("X-Chain-Id").and_then(|v| v.to_str().ok()) {
         Some(id) if !id.is_empty() => id,
         _ => {

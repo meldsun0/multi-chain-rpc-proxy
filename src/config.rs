@@ -1,6 +1,7 @@
 use std::fs;
 use serde::Deserialize;
 use anyhow::{Context, Result};
+use tracing::{info};
 use crate::model::blockchain::Blockchain;
 use crate::model::provider::{Provider, ProviderError};
 
@@ -33,8 +34,29 @@ impl Config {
     pub fn load_from_file(path: &str) -> Result<Config> {
         let content = fs::read_to_string(path).with_context(|| format!("Failed to read config file: {}", path))?;
         let config: Config = serde_yaml::from_str(&content).with_context(|| format!("Failed to parse config YAML: {}", path))?;
-        println!("{:#?}", config);
+        Self::print_startup_summary(&config);
         Ok(config)
+    }
+    pub fn print_startup_summary(config: &Config) {
+        info!("Host: {}", config.host);
+        info!("Port: {}", config.port);
+        info!("Blockchains: {}", config.blockchains.len());
+
+        for bc in &config.blockchains {
+            info!("⛓️  Blockchain: {} ({})", bc.name, bc.id);
+            for p in &bc.providers {
+                info!(
+                "  ↳ Provider: {} ({}) [{}:{}{}] priority={} default={}",
+                p.name,
+                p.id,
+                p.host,
+                p.port,
+                p.path,
+                p.priority,
+                p.default
+            );
+            }
+        }
     }
 }
 
